@@ -44,8 +44,8 @@ export default function RootLayout() {
             options={{ headerShown: false }} // Hide the default header
           />
           <Stack.Screen
-            name="(main)/teleconsultation/index"
-            options={{ headerShown: false }} // Hide the default header
+            name="Meeting Appointments"
+            options={{ headerShown: true }} // Hide the default header
           />
           <Stack.Screen
             name="(main)/notifications/index"
@@ -55,6 +55,11 @@ export default function RootLayout() {
             name="(main)/medications/index"
             options={{ headerShown: false }} // Hide the default header
           />
+          <Stack.Screen
+            name="(main)/teleconsultation/index"
+            options={{ headerShown: true, title: 'Meeting Page' }}
+          />
+          <Stack.Screen name="(main)/community/index" options={{ headerShown: false }} />
         </Stack>
       </SafeAreaView>
     </SafeAreaProvider>

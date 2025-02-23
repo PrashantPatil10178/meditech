@@ -1,10 +1,21 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Image, Modal } from 'react-native';
+import {
+  View,
+  Text,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+  Image,
+  Modal,
+  TextInput,
+  Platform,
+} from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { Link } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { ProgressChart } from 'react-native-chart-kit';
 import Animated, { useSharedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated';
+import DateTimePicker from '@react-native-community/datetimepicker';
 
 const Dashboard = () => {
   // Animation values
@@ -31,7 +42,7 @@ const Dashboard = () => {
     notificationScale.value = withSpring(0.9, { damping: 2, stiffness: 200 }, () => {
       notificationScale.value = withSpring(1);
     });
-    setShowNotifications(true); // Show notifications pop-up
+    setShowNotifications(true);
   };
 
   // Handle profile icon press
@@ -45,35 +56,142 @@ const Dashboard = () => {
   // Dummy data for progress chart
   const progressData = {
     labels: ['Calories', 'Steps', 'Water'],
-    data: [0.7, 0.4, 0.9], // Progress values (0 to 1)
+    data: [0.7, 0.4, 0.9],
   };
 
   // Random health notifications
   const [healthNotification, setHealthNotification] = useState('');
 
+  // Updated Reminder interface and state
+  interface Reminder {
+    text: string;
+    completed: boolean;
+    date: Date;
+    isDaily: boolean;
+  }
+
+  const [reminders, setReminders] = useState<Reminder[]>([]);
+  const [newReminder, setNewReminder] = useState('');
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [isDaily, setIsDaily] = useState(false);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showTimePicker, setShowTimePicker] = useState(false);
+
+  // Add new state for symptoms
+  interface Symptom {
+    id: number;
+    name: string;
+    severity: string;
+    timestamp: Date;
+  }
+
+  const [symptoms, setSymptoms] = useState<Symptom[]>([]);
+  const [newSymptom, setNewSymptom] = useState('');
+  const [symptomSeverity, setSymptomSeverity] = useState('mild');
+  const [showAddSymptom, setShowAddSymptom] = useState(false);
+
+  const addSymptom = () => {
+    if (newSymptom.trim() !== '') {
+      const symptom = {
+        id: Date.now(),
+        name: newSymptom,
+        severity: symptomSeverity,
+        timestamp: new Date(),
+      };
+      setSymptoms([symptom, ...symptoms]);
+      setNewSymptom('');
+      setSymptomSeverity('mild');
+      setShowAddSymptom(false);
+    }
+  };
+
+  const getSeverityColor = (severity: 'mild' | 'moderate' | 'severe'): string => {
+    switch (severity) {
+      case 'mild':
+        return '#48BB78';
+      case 'moderate':
+        return '#ECC94B';
+      case 'severe':
+        return '#F56565';
+      default:
+        return '#48BB78';
+    }
+  };
+
+  const addReminder = () => {
+    if (newReminder.trim() !== '') {
+      setReminders([
+        ...reminders,
+        {
+          text: newReminder,
+          completed: false,
+          date: selectedDate,
+          isDaily,
+        },
+      ]);
+      setNewReminder('');
+      setIsDaily(false);
+      setSelectedDate(new Date());
+    }
+  };
+
+  const toggleReminder = (index: number) => {
+    const updatedReminders = [...reminders];
+    updatedReminders[index].completed = !updatedReminders[index].completed;
+    setReminders(updatedReminders);
+  };
+
+  const removeReminder = (index: number) => {
+    const updatedReminders = reminders.filter((_, i) => i !== index);
+    setReminders(updatedReminders);
+  };
+
+  const formatTime = (date: Date) => {
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
+
+  const formatDate = (date: Date) => {
+    return date.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' });
+  };
+
+  const onDateChange = (event: any, selectedDate?: Date) => {
+    const currentDate = selectedDate || new Date();
+    setShowDatePicker(false);
+    setSelectedDate(currentDate);
+  };
+
+  const onTimeChange = (event: any, selectedTime?: Date) => {
+    const currentTime = selectedTime || new Date();
+    setShowTimePicker(false);
+    if (selectedTime) {
+      const newDate = new Date(selectedDate);
+      newDate.setHours(currentTime.getHours());
+      newDate.setMinutes(currentTime.getMinutes());
+      setSelectedDate(newDate);
+    }
+  };
+
   useEffect(() => {
     const notifications = [
-      'Don’t forget to take your Vitamin D supplement today!',
+      "Don't forget to take your Vitamin D supplement today!",
       'Stay hydrated! Drink at least 2 liters of water daily.',
       'Remember to log your meals for accurate calorie tracking.',
       'Your next teleconsultation is scheduled for tomorrow at 10 AM.',
       'Take a 10-minute walk to meet your daily step goal.',
     ];
 
-    // Set a random notification every 10 seconds
     const interval = setInterval(() => {
       const randomNotification = notifications[Math.floor(Math.random() * notifications.length)];
       setHealthNotification(randomNotification);
     }, 10000);
 
-    // Clear interval on unmount
     return () => clearInterval(interval);
   }, []);
 
   // Dummy notifications for pop-up
   const notifications = [
     { id: 1, text: 'Your appointment with Dr. Smith is tomorrow at 10 AM.', time: '2 hours ago' },
-    { id: 2, text: 'Don’t forget to take your Vitamin D supplement.', time: '5 hours ago' },
+    { id: 2, text: "Don't forget to take your Vitamin D supplement.", time: '5 hours ago' },
     { id: 3, text: 'Your blood test report is ready.', time: '1 day ago' },
   ];
 
@@ -83,7 +201,7 @@ const Dashboard = () => {
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.appInfo}>
-            <Text style={styles.appName}>HealthHub</Text>
+            <Text style={styles.appName}>MediTech</Text>
             <Text style={styles.healthNotification}>{healthNotification}</Text>
           </View>
           <View style={styles.headerIcons}>
@@ -98,7 +216,7 @@ const Dashboard = () => {
             <TouchableOpacity onPress={handleProfilePress}>
               <Animated.View style={[styles.profileIcon, profileStyle]}>
                 <Image
-                  source={{ uri: 'https://placekitten.com/100/100' }} // Replace with user profile picture
+                  source={{ uri: 'https://placekitten.com/100/100' }}
                   style={styles.profileImage}
                 />
               </Animated.View>
@@ -170,14 +288,14 @@ const Dashboard = () => {
           <View style={styles.appointmentCard}>
             <Feather name="calendar" size={24} color="#2C7A7B" />
             <View style={styles.appointmentDetails}>
-              <Text style={styles.appointmentTitle}>Dr. Smith</Text>
+              <Text style={styles.appointmentTitle}>Dr.Yash</Text>
               <Text style={styles.appointmentTime}>10:00 AM, 25th Oct 2023</Text>
             </View>
           </View>
           <View style={styles.appointmentCard}>
             <Feather name="calendar" size={24} color="#2C7A7B" />
             <View style={styles.appointmentDetails}>
-              <Text style={styles.appointmentTitle}>Dr. Johnson</Text>
+              <Text style={styles.appointmentTitle}>Dr.Sarthak</Text>
               <Text style={styles.appointmentTime}>2:00 PM, 26th Oct 2023</Text>
             </View>
           </View>
@@ -189,8 +307,8 @@ const Dashboard = () => {
           <View style={styles.chartContainer}>
             <ProgressChart
               data={progressData}
-              width={350} // Increased width
-              height={200}
+              width={310}
+              height={220}
               chartConfig={{
                 backgroundColor: '#FFFFFF',
                 backgroundGradientFrom: '#FFFFFF',
@@ -205,15 +323,95 @@ const Dashboard = () => {
 
         {/* Symptom Monitoring */}
         <View style={styles.symptomMonitoring}>
-          <Text style={styles.sectionTitle}>Symptom Monitoring</Text>
-          <View style={styles.symptomCard}>
-            <Text style={styles.symptomTitle}>Headache</Text>
-            <Text style={styles.symptomDetails}>Logged: 2 hours ago</Text>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Symptom Monitoring</Text>
+            <TouchableOpacity
+              style={styles.addSymptomButton}
+              onPress={() => setShowAddSymptom(true)}>
+              <Feather name="plus" size={24} color="#2C7A7B" />
+            </TouchableOpacity>
           </View>
-          <View style={styles.symptomCard}>
-            <Text style={styles.symptomTitle}>Fatigue</Text>
-            <Text style={styles.symptomDetails}>Logged: 5 hours ago</Text>
-          </View>
+
+          {symptoms.map((symptom) => (
+            <View key={symptom.id} style={styles.symptomCard}>
+              <View style={styles.symptomHeader}>
+                <Text style={styles.symptomTitle}>{symptom.name}</Text>
+                <View
+                  style={[
+                    styles.severityBadge,
+                    {
+                      backgroundColor: getSeverityColor(
+                        symptom.severity as 'mild' | 'moderate' | 'severe'
+                      ),
+                    },
+                  ]}>
+                  <Text style={styles.severityText}>
+                    {symptom.severity.charAt(0).toUpperCase() + symptom.severity.slice(1)}
+                  </Text>
+                </View>
+              </View>
+              <Text style={styles.symptomDetails}>
+                Logged:{' '}
+                {new Date(symptom.timestamp).toLocaleTimeString([], {
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })}
+              </Text>
+            </View>
+          ))}
+
+          {/* Add Symptom Modal */}
+          <Modal
+            visible={showAddSymptom}
+            transparent={true}
+            animationType="slide"
+            onRequestClose={() => setShowAddSymptom(false)}>
+            <View style={styles.modalOverlay}>
+              <View style={styles.modalContent}>
+                <Text style={styles.modalTitle}>Add New Symptom</Text>
+
+                <TextInput
+                  style={styles.symptomInput}
+                  placeholder="Enter symptom"
+                  value={newSymptom}
+                  onChangeText={setNewSymptom}
+                />
+
+                <Text style={styles.severityLabel}>Severity</Text>
+                <View style={styles.severityButtons}>
+                  {['mild', 'moderate', 'severe'].map((severity) => (
+                    <TouchableOpacity
+                      key={severity}
+                      style={[
+                        styles.severityButton,
+                        symptomSeverity === severity && styles.severityButtonActive,
+                        {
+                          backgroundColor: getSeverityColor(
+                            severity as 'mild' | 'moderate' | 'severe'
+                          ),
+                        },
+                      ]}
+                      onPress={() => setSymptomSeverity(severity)}>
+                      <Text style={styles.severityButtonText}>
+                        {severity.charAt(0).toUpperCase() + severity.slice(1)}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+
+                <View style={styles.modalActions}>
+                  <TouchableOpacity
+                    style={styles.cancelButton}
+                    onPress={() => setShowAddSymptom(false)}>
+                    <Text style={styles.cancelButtonText}>Cancel</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.addButton} onPress={addSymptom}>
+                    <Text style={styles.addButtonText}>Add Symptom</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
+          </Modal>
         </View>
 
         {/* Community Health Dashboard */}
@@ -248,10 +446,117 @@ const Dashboard = () => {
             <Feather name="plus" size={24} color="#FFFFFF" />
             <Text style={styles.actionText}>Log Symptom</Text>
           </TouchableOpacity>
+
           <TouchableOpacity style={styles.actionButton}>
-            <Feather name="play" size={24} color="#FFFFFF" />
-            <Text style={styles.actionText}>Start Teleconsultation</Text>
+            <Link
+              href={{
+                pathname: '/(main)/teleconsultation',
+                params: {
+                  roomName: 'DemoRoom',
+                  userInfo: JSON.stringify({ displayName: 'Guest User' }),
+                },
+              }}>
+              <Feather name="play" size={24} color="#FFFFFF" />
+              <Text style={styles.actionText}>Start Teleconsultation</Text>
+            </Link>
           </TouchableOpacity>
+        </View>
+
+        {/* Todo Reminders */}
+        <View style={styles.todoReminders}>
+          <Text style={styles.sectionTitle}>Todo Reminders</Text>
+          <View style={styles.todoCard}>
+            <TextInput
+              style={styles.todoInput}
+              placeholder="Add a new reminder"
+              value={newReminder}
+              onChangeText={setNewReminder}
+            />
+            <View style={styles.reminderControls}>
+              <TouchableOpacity
+                style={styles.dateTimeButton}
+                onPress={() => setShowDatePicker(true)}>
+                <Feather name="calendar" size={20} color="#2C7A7B" />
+                <Text style={styles.dateTimeText}>{formatDate(selectedDate)}</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.dateTimeButton}
+                onPress={() => setShowTimePicker(true)}>
+                <Feather name="clock" size={20} color="#2C7A7B" />
+                <Text style={styles.dateTimeText}>{formatTime(selectedDate)}</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.dailyButton, isDaily && styles.dailyButtonActive]}
+                onPress={() => setIsDaily(!isDaily)}>
+                <Feather
+                  name={isDaily ? 'repeat' : 'clock'}
+                  size={20}
+                  color={isDaily ? '#FFFFFF' : '#2C7A7B'}
+                />
+                <Text style={[styles.dailyButtonText, isDaily && styles.dailyButtonTextActive]}>
+                  Daily
+                </Text>
+              </TouchableOpacity>
+            </View>
+            <View>
+              <TouchableOpacity style={styles.addButton} onPress={addReminder}>
+                <Feather name="plus" size={24} color="#FFFFFF" />
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {reminders.map((reminder, index) => (
+            <View key={index} style={styles.reminderItem}>
+              <TouchableOpacity onPress={() => toggleReminder(index)}>
+                <Feather
+                  name={reminder.completed ? 'check-square' : 'square'}
+                  size={24}
+                  color="#2C7A7B"
+                />
+              </TouchableOpacity>
+              <View style={styles.reminderContent}>
+                <Text style={[styles.reminderText, reminder.completed && styles.completedReminder]}>
+                  {reminder.text}
+                </Text>
+                <View style={styles.reminderMeta}>
+                  <Text style={styles.reminderDate}>
+                    {formatDate(reminder.date)} at {formatTime(reminder.date)}
+                  </Text>
+                  {reminder.isDaily && (
+                    <View style={styles.dailyTag}>
+                      <Feather name="repeat" size={14} color="#2C7A7B" />
+                      <Text style={styles.dailyTagText}>Daily</Text>
+                    </View>
+                  )}
+                </View>
+              </View>
+              <TouchableOpacity onPress={() => removeReminder(index)}>
+                <Feather name="trash-2" size={24} color="#FF4D4D" />
+              </TouchableOpacity>
+            </View>
+          ))}
+
+          {/* Date Picker */}
+          {showDatePicker && (
+            <DateTimePicker
+              value={selectedDate}
+              mode="date"
+              display="default"
+              onChange={onDateChange}
+            />
+          )}
+
+          {/* Time Picker */}
+          {showTimePicker && (
+            <DateTimePicker
+              value={selectedDate}
+              mode="time"
+              display="default"
+              onChange={onTimeChange}
+            />
+          )}
         </View>
       </ScrollView>
 
@@ -459,7 +764,10 @@ const styles = StyleSheet.create({
   chartContainer: {
     backgroundColor: '#FFFFFF',
     borderRadius: 10,
-    padding: 15,
+    padding: 7,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
     elevation: 5,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -468,6 +776,15 @@ const styles = StyleSheet.create({
   },
   symptomMonitoring: {
     marginBottom: 20,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 15,
+  },
+  addSymptomButton: {
+    padding: 5,
   },
   symptomCard: {
     backgroundColor: '#FFFFFF',
@@ -480,6 +797,12 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
   },
+  symptomHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 5,
+  },
   symptomTitle: {
     fontSize: 16,
     fontWeight: 'bold',
@@ -488,6 +811,95 @@ const styles = StyleSheet.create({
   symptomDetails: {
     fontSize: 14,
     color: '#4A5568',
+  },
+  severityBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  severityText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 10,
+    padding: 20,
+    width: '90%',
+    maxWidth: 400,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#2D3748',
+    marginBottom: 20,
+  },
+  symptomInput: {
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 20,
+    fontSize: 16,
+  },
+  severityLabel: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#2D3748',
+    marginBottom: 10,
+  },
+  severityButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 20,
+  },
+  severityButton: {
+    flex: 1,
+    marginHorizontal: 5,
+    paddingVertical: 8,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  severityButtonText: {
+    color: '#FFFFFF',
+    fontWeight: 'bold',
+  },
+  severityButtonActive: {
+    borderWidth: 2,
+    borderColor: '#2C7A7B',
+  },
+  modalActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 10,
+  },
+  cancelButton: {
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#2C7A7B',
+  },
+  cancelButtonText: {
+    color: '#2C7A7B',
+    fontWeight: 'bold',
+  },
+  addButton: {
+    backgroundColor: '#2C7A7B',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+  },
+  addButtonText: {
+    color: '#FFFFFF',
+    fontWeight: 'bold',
   },
   communityHealth: {
     marginBottom: 20,
@@ -557,6 +969,108 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: 'bold',
     marginLeft: 10,
+  },
+  todoReminders: {
+    marginBottom: 20,
+  },
+  todoCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 10,
+    padding: 15,
+    marginBottom: 10,
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  todoInput: {
+    fontSize: 16,
+    color: '#2D3748',
+  },
+  reminderControls: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 10,
+    gap: 10,
+  },
+  dateTimeButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F7FAFC',
+    borderRadius: 5,
+    padding: 8,
+    gap: 5,
+  },
+  dateTimeText: {
+    color: '#2C7A7B',
+    fontSize: 14,
+  },
+  dailyButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F7FAFC',
+    borderRadius: 5,
+    padding: 8,
+    gap: 5,
+  },
+  dailyButtonActive: {
+    backgroundColor: '#2C7A7B',
+  },
+  dailyButtonText: {
+    color: '#2C7A7B',
+    fontSize: 14,
+  },
+  dailyButtonTextActive: {
+    color: '#FFFFFF',
+  },
+  reminderItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 10,
+    padding: 15,
+    marginBottom: 10,
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  reminderContent: {
+    flex: 1,
+    marginLeft: 10,
+  },
+  reminderText: {
+    fontSize: 16,
+    color: '#2D3748',
+  },
+  completedReminder: {
+    textDecorationLine: 'line-through',
+    color: '#A0AEC0',
+  },
+  reminderMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 5,
+    gap: 10,
+  },
+  reminderDate: {
+    fontSize: 12,
+    color: '#718096',
+  },
+  dailyTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#E6FFFA',
+    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    gap: 4,
+  },
+  dailyTagText: {
+    fontSize: 12,
+    color: '#2C7A7B',
   },
   notificationsModal: {
     flex: 1,
