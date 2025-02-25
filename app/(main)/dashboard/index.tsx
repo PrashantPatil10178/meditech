@@ -16,8 +16,15 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { ProgressChart } from 'react-native-chart-kit';
 import Animated, { useSharedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import QRCode from 'react-native-qrcode-svg';
+import { account } from '~/services/appwrite';
 
 const Dashboard = () => {
+  const userData =
+    'https://cloud.appwrite.io/v1/storage/buckets/67b9d741003a1f86baa0/files/67baae370036da9a79b3/view?project=67b9a28200344b28883b&mode=admin';
+  // Convert userData to a string
+  const userDataString = JSON.stringify(userData);
+
   // Animation values
   const notificationScale = useSharedValue(1);
   const profileScale = useSharedValue(1);
@@ -557,6 +564,15 @@ const Dashboard = () => {
               onChange={onTimeChange}
             />
           )}
+        </View>
+        <View style={styles.containerqr}>
+          <Text style={styles.title}>Your QR Code</Text>
+          <View style={styles.qrCodeContainer}>
+            <View style={styles.qrCodeWrapper}>
+              <QRCode value={userData} size={200} color="#000000" backgroundColor="#FFFFFF" />
+            </View>
+          </View>
+          <Text style={styles.description}>Scan this QR code to share your details.</Text>
         </View>
       </ScrollView>
 
@@ -1114,6 +1130,40 @@ const styles = StyleSheet.create({
     color: '#2C7A7B',
     fontSize: 14,
     fontWeight: 'bold',
+  },
+  containerqr: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#F5F5F5',
+    padding: 20,
+  },
+  title: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    marginBottom: 20,
+    color: '#333',
+  },
+  qrCodeContainer: {
+    backgroundColor: '#FFF',
+    padding: 15,
+    borderRadius: 16,
+    elevation: 5, // Shadow for Android
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 5,
+  },
+  qrCodeWrapper: {
+    backgroundColor: '#FFF',
+    padding: 10,
+    borderRadius: 12,
+  },
+  description: {
+    fontSize: 16,
+    color: '#666',
+    textAlign: 'center',
+    marginTop: 15,
   },
 });
 
